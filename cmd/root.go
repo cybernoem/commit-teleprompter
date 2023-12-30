@@ -22,7 +22,6 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute() {
-
 	cobra.OnInitialize(initConfig)
 
 	RootCmd.AddCommand(issue.Cmd)

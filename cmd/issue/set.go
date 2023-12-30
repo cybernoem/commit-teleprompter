@@ -14,16 +14,12 @@ var SetCmd = &cobra.Command{
 	Example: "c-t issue set GIT-432",
 	Aliases: []string{"s"},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
+
+		if len(args) < 1 || args[0] == "" {
 			fmt.Println("Please provide an issue key")
 			return
 		}
 		issueKey := args[0]
-
-		if issueKey == "" {
-			fmt.Println("Please provide an issue key")
-			return
-		}
 
 		viper.Set("IssueKey", issueKey)
 		if err := viper.WriteConfig(); err != nil {
@@ -31,6 +27,7 @@ var SetCmd = &cobra.Command{
 		} else {
 			fmt.Println("Config file saved successfully.")
 		}
+
 		fmt.Printf("Issue key set to %s\n", viper.GetString("IssueKey"))
 		return
 	},
