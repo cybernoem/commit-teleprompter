@@ -2,123 +2,55 @@ package message
 
 import (
 	"fmt"
-	"io"
+	"log"
+	"os"
 
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/exp/slices"
+
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
+var baseKeywords = []string{
+	"feat",
+	"fix",
+	"docs",
+	"style",
+	"refactor",
+	"test",
+	"chore",
+	"build",
+	"ci",
+}
+
 var Cmd = &cobra.Command{
-	Use:   "message",
-	Short: "Message templates",
-	RunE: func(cmd *cobra.Command, args []string) error {
-
-		var items []list.Item
-
-		items = append(items, template("feat: "))
-		items = append(items, template("fix: "))
-
-		const defaultWidth = 20
-
-		l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-		l.Title = "What kind of commit ?"
-		l.SetShowStatusBar(false)
-		l.SetFilteringEnabled(true)
-		l.Styles.Title = titleStyle
-		l.Styles.PaginationStyle = paginationStyle
-		l.Styles.HelpStyle = helpStyle
-
-		m := model{list: l}
-
-		if err := tea.NewProgram(m).Start(); err != nil {
-			fmt.Println("Error running program:", err)
-			return err
+	Use:     "message",
+	Short:   "Message templates",
+	Aliases: []string{"msg", "m"},
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) > 0 {
+			fmt.Println(generateCommitExample(args[0]))
+		} else {
+			listTemplates()
 		}
-		return nil
 	},
 }
 
-const listHeight = 20
-
-var (
-	titleStyle        = lipgloss.NewStyle().MarginLeft(2)
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
-	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
-)
-
-type template string
-
-func (i template) FilterValue() string { return string(i) }
-
-type itemDelegate struct{}
-
-func (d itemDelegate) Height() int                               { return 1 }
-func (d itemDelegate) Spacing() int                              { return 0 }
-func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
-func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(template)
-	if !ok {
-		return
+func listTemplates() {
+	for _, item := range baseKeywords {
+		fmt.Println(generateCommitExample(item))
 	}
-
-	str := fmt.Sprintf("%d. %s", index+1, i)
-	var prefix = ""
-	fn := itemStyle.Render
-	if index == m.Index() {
-		prefix = "> "
-	}
-
-	fmt.Fprintf(w, fn(prefix+str))
 }
 
-type model struct {
-	list     list.Model
-	items    []template
-	choice   string
-	quitting bool
-}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
-		return m, nil
-
-	case tea.KeyMsg:
-		switch keypress := msg.String(); keypress {
-		case "ctrl+c":
-			m.quitting = true
-			return m, tea.Quit
-
-		case "enter":
-			i, ok := m.list.SelectedItem().(template)
-			if ok {
-				m.choice = string(i)
-			}
-			return m, tea.Quit
-		}
+func generateCommitExample(keyword string) string {
+	if !slices.Contains(baseKeywords, keyword) {
+		log.Fatalf("Error: Unkown keyboard: %s", keyword)
+		os.Exit(404)
 	}
 
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
-}
-
-func (m model) View() string {
-	if m.choice != "" {
-		return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.choice))
+	var issueKey = viper.Get("IssueKey")
+	if viper.Get("IssueKey") != "" {
+		issueKey = fmt.Sprintf("%s - ", issueKey)
 	}
-	if m.quitting {
-		return quitTextStyle.Render("Nevermind.")
-	}
-	return "\n" + m.list.View()
+	return fmt.Sprintf("%s: %s", keyword, issueKey)
 }

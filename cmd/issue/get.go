@@ -18,7 +18,7 @@ var GetCmd = &cobra.Command{
 		if currentKey != "" {
 			fmt.Printf("The current issue key is set to %s\n", currentKey)
 		} else {
-			fmt.Printf("The current issue key is not set.\nTo set it: c-t issue set [ISSUE_KEY]")
+			fmt.Printf("The current issue key is not set.\nTo set it: c-t issue set [ISSUE_KEY]\n")
 		}
 	},
 }
